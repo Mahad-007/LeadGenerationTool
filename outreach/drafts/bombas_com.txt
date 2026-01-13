@@ -1,0 +1,45 @@
+================================================================================
+OUTREACH DRAFT
+================================================================================
+
+Store: https://bombas.com
+Generated: 2026-01-12T10:13:16.133214
+
+--------------------------------------------------------------------------------
+TO: No email found - check social media
+--------------------------------------------------------------------------------
+
+SUBJECT: Page speed opportunity for Bombas
+
+--------------------------------------------------------------------------------
+BODY:
+--------------------------------------------------------------------------------
+
+Hi there,
+
+I took a look at Bombas and ran some performance tests. I noticed your homepage is loading slower than ideal - The Largest Contentful Paint (LCP) for the desktop homepage is 4984ms, which is significantly slower than the recommended threshold of 2500ms. This indicates a poor loading experience for the main content, potentially leading to user frustration and higher bounce rates. Specifically, performance metrics: desktop: lcp: 4984ms (slow)
+
+Slow load times can significantly impact both conversions and search rankings. Studies show that each second of delay can reduce conversions by 7%.
+
+There are usually some quick optimizations that can make a noticeable difference.
+
+Would you be interested in a brief overview of what could be improved?
+
+Best regards,
+Your NameMA Solutions
+UI/UX ConsultantUI/UX Consultant
+
+--------------------------------------------------------------------------------
+ISSUE REFERENCED:
+--------------------------------------------------------------------------------
+Category: performance
+Severity: high
+Title: Slow Largest Contentful Paint (LCP) on Desktop
+
+--------------------------------------------------------------------------------
+CONTACT INFO:
+--------------------------------------------------------------------------------
+Emails: None found
+Social: instagram: https://www.instagram.com/bombas, facebook: https://www.facebook.com/bombassocks, twitter: https://www.twitter.com/bombas
+
+================================================================================

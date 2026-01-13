@@ -1,0 +1,84 @@
+{
+  "metadata": {
+    "generated_at": "2026-01-12T10:13:16.043487",
+    "total_sites": 3,
+    "sites_with_contacts": 3,
+    "total_emails_found": 6,
+    "total_social_found": 7
+  },
+  "contacts": [
+    {
+      "url": "https://bombas.com",
+      "extracted_at": "2026-01-12T10:11:17.942793",
+      "emails": [],
+      "phones": [
+        "10471338148",
+        "133.3333333",
+        "1422566351",
+        "1503876604",
+        "1754002334"
+      ],
+      "social": {
+        "instagram": "https://www.instagram.com/bombas",
+        "facebook": "https://www.facebook.com/bombassocks",
+        "twitter": "https://www.twitter.com/bombas"
+      },
+      "contact_page_found": true,
+      "sources": [
+        "homepage",
+        "/pages/contact-us"
+      ],
+      "error": null
+    },
+    {
+      "url": "https://allbirds.com",
+      "extracted_at": "2026-01-12T10:11:56.252136",
+      "emails": [
+        "bulkorders@allbirds.com",
+        "help@allbirds.com",
+        "legal@allbirds.com",
+        "privacy@allbirds.com"
+      ],
+      "phones": [
+        "15968832749",
+        "1719584207",
+        "1753720776",
+        "18142519966",
+        "18889638944",
+        "4105505839",
+        "7572770508"
+      ],
+      "social": {
+        "instagram": "https://www.instagram.com/allbirds",
+        "facebook": "https://www.facebook.com/weareallbirds",
+        "twitter": "https://twitter.com/allbirds",
+        "tiktok": "https://www.tiktok.com/@weareallbirds"
+      },
+      "contact_page_found": false,
+      "sources": [
+        "homepage"
+      ],
+      "error": null
+    },
+    {
+      "url": "https://gymshark.com",
+      "extracted_at": "2026-01-12T10:12:51.927574",
+      "emails": [
+        "press@gymshark.com",
+        "support@gymshark.com"
+      ],
+      "phones": [
+        "1556715822",
+        "15974208432",
+        "1613146345"
+      ],
+      "social": {},
+      "contact_page_found": true,
+      "sources": [
+        "homepage",
+        "/contact"
+      ],
+      "error": null
+    }
+  ]
+}

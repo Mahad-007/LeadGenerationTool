@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "generated_at": "2026-01-12T15:07:34.681632",
+    "total_niches": 1,
+    "total_urls": 3,
+    "source": "manual_input"
+  },
+  "discoveries": [
+    {
+      "niche": "manual_input",
+      "discovered_at": "2026-01-12T15:07:34.681645",
+      "total_urls": 3,
+      "urls": [
+        "https://allbirds.com",
+        "https://gymshark.com",
+        "https://bombas.com"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+================================================================================
+OUTREACH DRAFT
+================================================================================
+
+Store: https://allbirds.com
+Generated: 2026-01-12T10:13:16.133447
+
+--------------------------------------------------------------------------------
+TO: bulkorders@allbirds.com, help@allbirds.com, legal@allbirds.com, privacy@allbirds.com
+--------------------------------------------------------------------------------
+
+SUBJECT: Technical issue on Allbirds
+
+--------------------------------------------------------------------------------
+BODY:
+--------------------------------------------------------------------------------
+
+Hi there,
+
+While reviewing Allbirds, I noticed there are some JavaScript errors occurring on your homepage.
+
+The desktop console log contains an error indicating a Content Security Policy (CSP) violation. Specifically, 'Framing 'https://shop.app/' violates the following report-only Content Security Policy directive: "frame-ancestors 'self' https://shop.app https://admin.shopify.com"'. While reported as 'report-only', this error indicates an attempt to frame shop.app that triggers the CSP, which could signify a misconfiguration or a security concern if not intended, or could lead to functional issues if the policy were to be enforced. Specifically, desktop: [error] framing 'https://shop.app/' violates the following report-only content security policy directive: "frame-ancestors 'self' https://shop.app https://admin.shopify.com". the violation has been logged, bu
+
+These errors might be affecting certain features or slowing things down for your visitors.
+
+Would you like me to provide more details about what I found?
+
+Best regards,
+Your NameMA Solutions
+UI/UX ConsultantUI/UX Consultant
+
+--------------------------------------------------------------------------------
+ISSUE REFERENCED:
+--------------------------------------------------------------------------------
+Category: console_error
+Severity: high
+Title: Content Security Policy (CSP) frame-ancestors Violation (Desktop)
+
+--------------------------------------------------------------------------------
+CONTACT INFO:
+--------------------------------------------------------------------------------
+Emails: bulkorders@allbirds.com, help@allbirds.com, legal@allbirds.com, privacy@allbirds.com
+Social: instagram: https://www.instagram.com/allbirds, facebook: https://www.facebook.com/weareallbirds, twitter: https://twitter.com/allbirds, tiktok: https://www.tiktok.com/@weareallbirds
+
+================================================================================

@@ -1,0 +1,4 @@
+# Niche keywords for Shopify store discovery
+# One niche per line
+
+candles
