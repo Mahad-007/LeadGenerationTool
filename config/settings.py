@@ -5,6 +5,10 @@ All paths, timeouts, and API configurations are centralized here.
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 # =============================================================================
 # PROJECT PATHS
@@ -80,7 +84,7 @@ POST_LOAD_WAIT = 3000
 # =============================================================================
 
 # Minimum confidence score to consider a site as Shopify (0-100)
-MIN_SHOPIFY_CONFIDENCE = 50
+MIN_SHOPIFY_CONFIDENCE = 60
 
 # Shopify detection signals and their weights
 SHOPIFY_SIGNALS = {
@@ -153,7 +157,7 @@ EXCLUDED_EMAIL_PATTERNS = [
 # =============================================================================
 
 # Sender name for email drafts
-SENDER_NAME = "Your Name"
+SENDER_NAME = "MA Solutions"
 
 # Sender company/title
 SENDER_TITLE = "UI/UX Consultant"

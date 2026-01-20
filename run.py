@@ -16,6 +16,10 @@ import subprocess
 import json
 from pathlib import Path
 from typing import Optional, List
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv(Path(__file__).parent / ".env")
 
 import typer
 import questionary

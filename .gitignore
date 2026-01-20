@@ -31,3 +31,16 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# Generated output data
+audits/
+contacts/
+discovery/
+outreach/drafts/
+verification/
+
+# User input files
+input/
+
+# Document files
+*.docx
