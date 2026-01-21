@@ -52,7 +52,7 @@ MAX_REQUEST_DELAY = 15
 MAX_RESULTS_PER_ENGINE = 30
 
 # Maximum total sites to discover per niche
-MAX_SITES_PER_NICHE = 10
+MAX_SITES_PER_NICHE = 5
 
 # Request timeout (in seconds)
 REQUEST_TIMEOUT = 30
@@ -84,7 +84,7 @@ POST_LOAD_WAIT = 3000
 # =============================================================================
 
 # Minimum confidence score to consider a site as Shopify (0-100)
-MIN_SHOPIFY_CONFIDENCE = 60
+MIN_SHOPIFY_CONFIDENCE = 70
 
 # Shopify detection signals and their weights
 SHOPIFY_SIGNALS = {
@@ -157,7 +157,7 @@ EXCLUDED_EMAIL_PATTERNS = [
 # =============================================================================
 
 # Sender name for email drafts
-SENDER_NAME = "MA Solutions"
+SENDER_NAME = "MM Solutions"
 
 # Sender company/title
 SENDER_TITLE = "UI/UX Consultant"

@@ -45,10 +45,6 @@ from config.settings import (
     GEMINI_API_KEY,
     GEMINI_MODEL,
     MAX_ISSUES_PER_SITE,
-    LCP_THRESHOLD_MS,
-    CLS_THRESHOLD,
-    DESKTOP_FOLD_LINE,
-    MOBILE_FOLD_LINE,
     LOG_LEVEL,
     LOG_FORMAT,
 )
@@ -57,63 +53,79 @@ from config.settings import (
 logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
-# Analysis prompt for Gemini
-ANALYSIS_PROMPT = """You are a professional UI/UX auditor analyzing a Shopify store homepage.
+# Analysis prompt for Gemini - VISUAL/DESIGN ISSUES ONLY
+ANALYSIS_PROMPT = """You are a professional UI/UX designer analyzing screenshots of a Shopify store homepage.
 
 CRITICAL INSTRUCTIONS:
-1. Report ONLY high-confidence, objectively verifiable UI issues
-2. Each issue MUST have specific visual evidence from the screenshots
+1. ONLY report issues that are CLEARLY VISIBLE in the screenshots provided
+2. Do NOT invent or assume issues - if you cannot see it, do not report it
 3. Report maximum {max_issues} issues total
-4. DO NOT include subjective opinions or preferences
-5. DO NOT hallucinate or assume issues not visible in screenshots
-6. Focus on issues that demonstrably impact conversion or usability
+4. Focus ONLY on visual design and UI issues - NOT performance or technical issues
+5. Each issue MUST include the exact location in the screenshot (e.g., "top-left corner", "hero section", "navigation bar")
+6. If the design looks good, return an empty issues array - do NOT force issues
 
-OBJECTIVE CRITERIA TO CHECK:
+DESIGN ISSUES TO LOOK FOR (only if clearly visible):
 
-1. CTA Visibility (Above the Fold)
-   - Is there a clear call-to-action button visible without scrolling?
-   - Fold line for desktop: {desktop_fold}px, mobile: {mobile_fold}px
-   - Evidence: Button position coordinates, visibility in screenshot
+1. TYPOGRAPHY ISSUES
+   - Text that is too small to read comfortably
+   - Poor font contrast (light text on light background or dark on dark)
+   - Text that is cut off or truncated awkwardly
+   - Inconsistent font sizes that break visual hierarchy
+   - Text overlapping other elements or images
 
-2. Performance Issues (from metrics)
-   - LCP > {lcp_threshold}ms indicates slow loading
-   - Console errors indicate JavaScript problems
-   - Evidence: Specific metric values provided
+2. LAYOUT & SPACING ISSUES
+   - Elements that are misaligned or not properly centered
+   - Inconsistent spacing/margins between elements
+   - Content that appears cramped or too spread out
+   - Elements overlapping each other unintentionally
+   - Broken grid or inconsistent column alignment
 
-3. Layout/Visual Issues
-   - Broken images (src errors, missing images)
-   - Text overlapping elements
-   - Elements cut off or misaligned
-   - Evidence: Visible in screenshot with specific location
+3. IMAGE ISSUES (only what's visible)
+   - Images that appear broken (showing broken image icon or placeholder)
+   - Images that are pixelated, blurry, or low quality
+   - Images that are stretched or distorted
+   - Missing product images showing empty boxes
 
-4. Mobile Responsiveness
-   - Content overflow or horizontal scroll
-   - Touch targets too small or too close
-   - Text too small to read
-   - Evidence: Visible in mobile screenshot
+4. MOBILE RESPONSIVENESS (from mobile screenshot)
+   - Content extending beyond screen edge (horizontal overflow)
+   - Buttons or text that are too small for touch
+   - Elements stacking awkwardly or overlapping
+   - Navigation that doesn't work on mobile view
 
-5. Console Errors
-   - JavaScript errors that may affect functionality
-   - Evidence: Specific error messages from console log
+5. COLOR & CONTRAST
+   - Text that's hard to read due to poor contrast
+   - Colors that clash or look unprofessional
+   - Important elements that don't stand out visually
 
-PROVIDED DATA:
-- Desktop screenshot
-- Mobile screenshot
-- Performance metrics: {metrics}
-- DOM analysis: {dom_info}
-- Console errors: {console_errors}
+6. VISUAL HIERARCHY
+   - No clear focal point or call-to-action visible
+   - Important elements hidden or hard to find
+   - Confusing layout where user doesn't know where to look
+
+WHAT NOT TO REPORT:
+- Performance or loading speed issues
+- Console errors or JavaScript issues
+- SEO or accessibility issues
+- Personal design preferences
+- Issues you cannot clearly see in the screenshot
+- Minor issues that don't impact user experience
+
+SCREENSHOTS PROVIDED:
+- Desktop screenshot (showing what users see on first load)
+- Mobile screenshot (showing mobile experience)
 
 REQUIRED JSON OUTPUT FORMAT:
 {{
     "issues": [
         {{
             "id": "issue_1",
-            "category": "cta_visibility|performance|layout|mobile|console_error",
+            "category": "typography|layout|images|mobile|contrast|hierarchy",
             "severity": "high|medium|low",
-            "title": "Brief issue title",
-            "description": "Specific description with evidence",
-            "evidence": "Exact evidence from screenshot/metrics/console",
-            "recommendation": "Specific actionable fix"
+            "title": "Brief, specific issue title",
+            "description": "Detailed description of exactly what's wrong",
+            "location": "Exact location in screenshot (e.g., 'hero section center', 'top navigation bar', 'footer left side')",
+            "evidence": "What you can see in the screenshot that proves this issue",
+            "recommendation": "Specific fix recommendation"
         }}
     ],
     "summary": {{
@@ -121,11 +133,11 @@ REQUIRED JSON OUTPUT FORMAT:
         "high_severity": 0,
         "medium_severity": 0,
         "low_severity": 0,
-        "primary_concern": "Most important issue or 'None' if no issues"
+        "primary_concern": "Most important design issue or 'None' if design looks good"
     }}
 }}
 
-If NO clear issues are found, return:
+If the homepage design looks good with NO clear visible issues, return:
 {{
     "issues": [],
     "summary": {{
@@ -133,11 +145,13 @@ If NO clear issues are found, return:
         "high_severity": 0,
         "medium_severity": 0,
         "low_severity": 0,
-        "primary_concern": "None - homepage appears well-optimized"
+        "primary_concern": "None - homepage design appears well-executed"
     }}
 }}
 
-Analyze the screenshots and data now. Return ONLY valid JSON, no other text."""
+IMPORTANT: Only report what you can actually SEE. Quality over quantity - fewer accurate issues is better than many false ones.
+
+Analyze the screenshots now. Return ONLY valid JSON, no other text."""
 
 
 class GeminiAnalyzer:
@@ -372,15 +386,9 @@ class GeminiAnalyzer:
                 result["error"] = "No screenshots available for analysis"
                 return result
 
-            # Prepare prompt with data
+            # Prepare prompt - only need max_issues for visual-only analysis
             prompt = ANALYSIS_PROMPT.format(
                 max_issues=MAX_ISSUES_PER_SITE,
-                desktop_fold=DESKTOP_FOLD_LINE,
-                mobile_fold=MOBILE_FOLD_LINE,
-                lcp_threshold=LCP_THRESHOLD_MS,
-                metrics=self._prepare_metrics_summary(audit_data),
-                dom_info=self._prepare_dom_summary(audit_data),
-                console_errors=self._prepare_console_errors(audit_data),
             )
 
             # Build content list for Gemini

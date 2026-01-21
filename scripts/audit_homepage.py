@@ -360,13 +360,13 @@ class HomepageAuditor:
             # Capture console errors
             result["console_errors"] = console_errors
 
-            # Take screenshot
+            # Take screenshot - viewport only (what users actually see first)
             screenshot_filename = f"{base_filename}_{viewport_type}.png"
             screenshot_path = self.screenshots_dir / screenshot_filename
 
             await page.screenshot(
                 path=str(screenshot_path),
-                full_page=True,
+                full_page=False,  # Viewport only - shows the actual first impression
                 type="png",
             )
             result["screenshot_path"] = str(screenshot_path)

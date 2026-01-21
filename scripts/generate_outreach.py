@@ -47,36 +47,19 @@ logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
 
-# Email templates based on issue categories
+# Email templates based on issue categories (design-focused)
 EMAIL_TEMPLATES = {
-    "cta_visibility": {
-        "subject": "Quick win for {store_name} - CTA visibility",
+    "typography": {
+        "subject": "Typography suggestion for {store_name}",
         "body": """Hi there,
 
-I was browsing {store_name} and noticed something that might be costing you conversions.
+I was browsing {store_name} and noticed a typography issue that might be affecting readability.
 
-Your main call-to-action button isn't visible when the page first loads - visitors have to scroll down to find it. {evidence}
+{evidence}
 
-This is actually a common issue that's straightforward to fix. Moving your primary CTA above the fold typically improves click-through rates by 20-30%.
+Good typography is crucial for building trust and keeping visitors engaged. When text is hard to read, shoppers often leave without making a purchase.
 
-Would it be helpful if I shared some specific suggestions for your store?
-
-Best regards,
-{sender_name}
-{sender_title}"""
-    },
-
-    "performance": {
-        "subject": "Page speed opportunity for {store_name}",
-        "body": """Hi there,
-
-I took a look at {store_name} and ran some performance tests. I noticed your homepage is loading slower than ideal - {evidence}
-
-Slow load times can significantly impact both conversions and search rankings. Studies show that each second of delay can reduce conversions by 7%.
-
-There are usually some quick optimizations that can make a noticeable difference.
-
-Would you be interested in a brief overview of what could be improved?
+I have some specific recommendations that could help if you're interested.
 
 Best regards,
 {sender_name}
@@ -84,16 +67,33 @@ Best regards,
     },
 
     "layout": {
-        "subject": "Visual issue spotted on {store_name}",
+        "subject": "Design feedback for {store_name}",
         "body": """Hi there,
 
-I was checking out {store_name} and noticed a visual issue that might be affecting the shopping experience.
+I was checking out {store_name} and noticed a layout issue that might be affecting the shopping experience.
 
 {evidence}
 
-These kinds of layout issues can make a store feel less polished and potentially reduce trust with visitors.
+These kinds of visual alignment issues can make a store feel less polished and potentially reduce trust with visitors.
 
 I have some ideas on how to address this if you'd like to hear them.
+
+Best regards,
+{sender_name}
+{sender_title}"""
+    },
+
+    "images": {
+        "subject": "Image issue spotted on {store_name}",
+        "body": """Hi there,
+
+I was looking at {store_name} and noticed an issue with one of your images.
+
+{evidence}
+
+Product and hero images are often the first thing shoppers notice. When images don't display properly, it can hurt conversions.
+
+Would you like me to point out exactly what I found?
 
 Best regards,
 {sender_name}
@@ -117,17 +117,34 @@ Best regards,
 {sender_title}"""
     },
 
-    "console_error": {
-        "subject": "Technical issue on {store_name}",
+    "contrast": {
+        "subject": "Readability suggestion for {store_name}",
         "body": """Hi there,
 
-While reviewing {store_name}, I noticed there are some JavaScript errors occurring on your homepage.
+I was browsing {store_name} and noticed a contrast issue that might be making some content harder to read.
 
 {evidence}
 
-These errors might be affecting certain features or slowing things down for your visitors.
+Good color contrast is important not just for readability, but also for accessibility. Improving it can help more visitors engage with your content.
 
-Would you like me to provide more details about what I found?
+Would you be interested in some specific suggestions?
+
+Best regards,
+{sender_name}
+{sender_title}"""
+    },
+
+    "hierarchy": {
+        "subject": "Design opportunity for {store_name}",
+        "body": """Hi there,
+
+I was looking at {store_name} and noticed an opportunity to improve the visual hierarchy of your homepage.
+
+{evidence}
+
+A clear visual hierarchy helps guide visitors to take action. When the layout is confusing, shoppers may leave without finding what they need.
+
+I'd be happy to share some ideas if you're interested.
 
 Best regards,
 {sender_name}
@@ -135,14 +152,14 @@ Best regards,
     },
 
     "generic": {
-        "subject": "UX improvement opportunity for {store_name}",
+        "subject": "Design improvement opportunity for {store_name}",
         "body": """Hi there,
 
-I was looking at {store_name} and noticed an opportunity to improve the user experience.
+I was looking at {store_name} and noticed an opportunity to improve the design.
 
 {evidence}
 
-Small improvements like this can often have a meaningful impact on conversions.
+Small design improvements like this can often have a meaningful impact on conversions.
 
 Would you be open to a quick conversation about it?
 
@@ -187,19 +204,20 @@ def select_best_issue(issues: List[Dict]) -> Optional[Dict]:
     if not issues:
         return None
 
-    # Prioritize by severity, then by category
+    # Prioritize by severity, then by category (design-focused)
     severity_order = {"high": 0, "medium": 1, "low": 2}
     category_order = {
-        "cta_visibility": 0,  # Most actionable
-        "mobile": 1,
-        "performance": 2,
-        "layout": 3,
-        "console_error": 4,
+        "images": 0,       # Most visible/actionable
+        "layout": 1,       # Clear visual issues
+        "mobile": 2,       # Important for conversions
+        "hierarchy": 3,    # Design clarity
+        "contrast": 4,     # Readability issues
+        "typography": 5,   # Text issues
     }
 
     def sort_key(issue):
         severity = severity_order.get(issue.get("severity", "medium"), 1)
-        category = category_order.get(issue.get("category", "generic"), 5)
+        category = category_order.get(issue.get("category", "generic"), 6)
         return (severity, category)
 
     sorted_issues = sorted(issues, key=sort_key)
