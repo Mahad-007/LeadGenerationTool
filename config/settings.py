@@ -157,7 +157,7 @@ EXCLUDED_EMAIL_PATTERNS = [
 # =============================================================================
 
 # Sender name for email drafts
-SENDER_NAME = "MM Solutions"
+SENDER_NAME = "Maddyyy"
 
 # Sender company/title
 SENDER_TITLE = "UI/UX Consultant"
@@ -186,10 +186,12 @@ BING_SEARCH_URL = "https://www.bing.com/search"
 DUCKDUCKGO_SEARCH_URL = "https://html.duckduckgo.com/html/"
 
 # Search query templates for Shopify store discovery
-# Prioritize myshopify.com which guarantees Shopify stores
+# Note: site:myshopify.com queries are often blocked - use natural queries as fallback
 SEARCH_QUERY_TEMPLATES = [
+    # Natural language queries that find Shopify stores (less likely to be blocked)
+    '{niche} online store shop buy',
+    '{niche} shop free shipping',
+    # More specific Shopify queries (may be blocked)
     'site:myshopify.com {niche}',
-    '{niche} site:myshopify.com',
-    '"{niche}" inurl:myshopify.com',
-    '"{niche}" "powered by shopify" shop -site:shopify.com -site:apps.shopify.com',
+    '"{niche}" "powered by shopify" shop',
 ]

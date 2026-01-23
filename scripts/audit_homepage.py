@@ -343,9 +343,14 @@ class HomepageAuditor:
 
             # Navigate to page
             logger.info(f"  Loading {viewport_type} view...")
-            await page.goto(url, wait_until="networkidle", timeout=PAGE_LOAD_TIMEOUT)
+            try:
+                # Use "load" instead of "networkidle" - more reliable for slow sites
+                await page.goto(url, wait_until="load", timeout=PAGE_LOAD_TIMEOUT)
+            except PlaywrightTimeout:
+                # If load times out, try to continue anyway - page may be partially loaded
+                logger.warning(f"  Page load timeout, attempting to capture partial state...")
 
-            # Wait for dynamic content
+            # Wait for dynamic content to render
             await page.wait_for_timeout(POST_LOAD_WAIT)
 
             # Get performance metrics

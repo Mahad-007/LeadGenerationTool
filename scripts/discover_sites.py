@@ -94,6 +94,46 @@ SHOPIFY_STORE_DATABASE = {
         "https://summerfridays.com",
         "https://tatcha.com",
     ],
+    "skincare": [
+        "https://theordinary.com",
+        "https://tatcha.com",
+        "https://summerfridays.com",
+        "https://drunkdelephant.com",
+        "https://glossier.com",
+        "https://peaceoutskincare.com",
+        "https://herbivorebotanicals.com",
+        "https://youthtothepeople.com",
+        "https://cocokind.com",
+        "https://versed.com",
+    ],
+    "men skincare": [
+        "https://getlumin.com",
+        "https://geologie.com",
+        "https://harrysstyle.com",
+        "https://manscaped.com",
+        "https://beardoholic.com",
+        "https://baldsquad.com",
+        "https://mensgrooming.com",
+        "https://bulldogskincare.com",
+    ],
+    "men skin care": [
+        "https://getlumin.com",
+        "https://geologie.com",
+        "https://harrysstyle.com",
+        "https://manscaped.com",
+        "https://beardoholic.com",
+        "https://baldsquad.com",
+        "https://mensgrooming.com",
+        "https://bulldogskincare.com",
+    ],
+    "grooming": [
+        "https://manscaped.com",
+        "https://theartofshaving.com",
+        "https://getlumin.com",
+        "https://harrysstyle.com",
+        "https://supply.co",
+        "https://beardbrand.com",
+    ],
     "fitness": [
         "https://gymshark.com",
         "https://alphaleteathletics.com",
@@ -439,7 +479,46 @@ class SearchEngineScraper:
             html = page.content()
             soup = BeautifulSoup(html, "html.parser")
 
-            # Google result selectors
+            # Debug: log page title to verify we're on Google results
+            page_title = soup.title.string if soup.title else "No title"
+            logger.debug(f"Google page title: {page_title}")
+
+            # Detect CAPTCHA or blocking
+            page_text = soup.get_text().lower()
+            if any(indicator in page_text for indicator in [
+                "unusual traffic",
+                "automated queries",
+                "captcha",
+                "verify you're not a robot",
+                "suspected automated",
+                "please verify"
+            ]):
+                logger.warning("Google CAPTCHA/blocking detected - search may return 0 results")
+
+            # Log HTML length for debugging
+            logger.debug(f"Google HTML length: {len(html)} chars")
+
+            # Google result selectors - multiple strategies for robustness
+
+            # Strategy 1: Look for search result containers with data-ved attribute (Google's tracking)
+            for result in soup.select("div[data-ved] a[href^='http']"):
+                href = result.get("href", "")
+                if href and not any(x in href for x in ["google.com", "youtube.com", "webcache", "accounts.google"]):
+                    normalized = normalize_url(href)
+                    if normalized:
+                        urls.add(normalized)
+                        logger.debug(f"Google strategy 1 found: {normalized}")
+
+            # Strategy 2: Look for links with jsname attribute (Google's JS framework)
+            for link in soup.select("a[jsname][href^='http']"):
+                href = link.get("href", "")
+                if href and not any(x in href for x in ["google.com", "youtube.com", "webcache", "accounts.google"]):
+                    normalized = normalize_url(href)
+                    if normalized:
+                        urls.add(normalized)
+                        logger.debug(f"Google strategy 2 found: {normalized}")
+
+            # Strategy 3: Generic http links (fallback)
             for link in soup.select("a[href^='http']:not([href*='google'])"):
                 href = link.get("href", "")
                 if href and not any(x in href for x in ["google.com", "youtube.com", "webcache"]):
@@ -447,13 +526,16 @@ class SearchEngineScraper:
                     if normalized:
                         urls.add(normalized)
 
-            # Also check cite elements
+            # Strategy 4: Check cite elements (display URLs) - FIXED: removed "›" exclusion
+            # The normalize_url function already handles breadcrumb-style URLs
             for cite in soup.select("cite"):
-                text = cite.get_text()
-                if text and "›" not in text:
-                    normalized = normalize_url(text.split(" ")[0])
+                text = cite.get_text().strip()
+                if text:
+                    # Pass the full text - normalize_url handles breadcrumb separators
+                    normalized = normalize_url(text)
                     if normalized:
                         urls.add(normalized)
+                        logger.debug(f"Google cite found: {normalized}")
 
             context.close()
 
@@ -461,6 +543,18 @@ class SearchEngineScraper:
             logger.warning(f"Timeout searching Google for: {query}")
         except Exception as e:
             logger.warning(f"Error searching Google: {e}")
+
+        # Save debug HTML if no results found
+        if len(urls) == 0:
+            try:
+                debug_dir = PROJECT_ROOT / "debug"
+                debug_dir.mkdir(exist_ok=True)
+                debug_file = debug_dir / f"google_debug_{int(time.time())}.html"
+                with open(debug_file, "w", encoding="utf-8") as f:
+                    f.write(html if 'html' in dir() else "No HTML captured")
+                logger.info(f"Debug HTML saved to {debug_file}")
+            except Exception as e:
+                logger.debug(f"Could not save debug HTML: {e}")
 
         logger.info(f"Google found {len(urls)} URLs for query")
         return urls
@@ -498,11 +592,66 @@ class SearchEngineScraper:
             html = page.content()
             soup = BeautifulSoup(html, "html.parser")
 
-            # DuckDuckGo result selectors
-            for link in soup.select("a[data-testid='result-title-a'], a[href^='http']"):
+            # Debug: log page title to verify we're on DDG results
+            page_title = soup.title.string if soup.title else "No title"
+            logger.debug(f"DuckDuckGo page title: {page_title}")
+
+            # Detect rate limiting or blocking
+            page_text = soup.get_text().lower()
+            if any(indicator in page_text for indicator in [
+                "rate limited",
+                "too many requests",
+                "please try again",
+                "automated queries"
+            ]):
+                logger.warning("DuckDuckGo rate limiting detected - search may return 0 results")
+
+            # Log HTML length for debugging
+            logger.debug(f"DuckDuckGo HTML length: {len(html)} chars")
+
+            # DuckDuckGo result selectors - multiple strategies for robustness
+
+            # Strategy 1: Result title links (current DDG structure)
+            for link in soup.select("a[data-testid='result-title-a']"):
                 href = link.get("href", "")
-                if href and href.startswith("http") and "duckduckgo" not in href:
+                if href and href.startswith("http"):
                     # Handle DDG redirect URLs
+                    if "uddg=" in href:
+                        match = re.search(r"uddg=([^&]+)", href)
+                        if match:
+                            href = unquote(match.group(1))
+                    if "duckduckgo" not in href:
+                        normalized = normalize_url(href)
+                        if normalized:
+                            urls.add(normalized)
+                            logger.debug(f"DDG strategy 1 found: {normalized}")
+
+            # Strategy 2: Result links container (alternative selector)
+            for link in soup.select("article a[href^='http'], .result__a[href^='http']"):
+                href = link.get("href", "")
+                if href and "duckduckgo" not in href:
+                    if "uddg=" in href:
+                        match = re.search(r"uddg=([^&]+)", href)
+                        if match:
+                            href = unquote(match.group(1))
+                    normalized = normalize_url(href)
+                    if normalized:
+                        urls.add(normalized)
+                        logger.debug(f"DDG strategy 2 found: {normalized}")
+
+            # Strategy 3: Look for result URL display elements
+            for url_span in soup.select(".result__url, [data-testid='result-extras-url-link']"):
+                text = url_span.get_text().strip()
+                if text:
+                    normalized = normalize_url(text)
+                    if normalized:
+                        urls.add(normalized)
+                        logger.debug(f"DDG strategy 3 found: {normalized}")
+
+            # Strategy 4: Generic http links as fallback (but exclude DDG internals)
+            for link in soup.select("a[href^='http']"):
+                href = link.get("href", "")
+                if href and not any(x in href for x in ["duckduckgo.com", "duck.co", "spreadprivacy"]):
                     if "uddg=" in href:
                         match = re.search(r"uddg=([^&]+)", href)
                         if match:
@@ -518,7 +667,123 @@ class SearchEngineScraper:
         except Exception as e:
             logger.warning(f"Error searching DuckDuckGo: {e}")
 
+        # Save debug HTML if no results found
+        if len(urls) == 0:
+            try:
+                debug_dir = PROJECT_ROOT / "debug"
+                debug_dir.mkdir(exist_ok=True)
+                debug_file = debug_dir / f"ddg_debug_{int(time.time())}.html"
+                with open(debug_file, "w", encoding="utf-8") as f:
+                    f.write(html if 'html' in dir() else "No HTML captured")
+                logger.info(f"Debug HTML saved to {debug_file}")
+            except Exception as e:
+                logger.debug(f"Could not save debug HTML: {e}")
+
         logger.info(f"DuckDuckGo found {len(urls)} URLs for query")
+        return urls
+
+    def search_bing(self, query: str) -> Set[str]:
+        """
+        Search Bing and extract URLs using Playwright.
+        Bing is generally less aggressive with bot detection.
+
+        Args:
+            query: Search query string
+
+        Returns:
+            Set of discovered URLs
+        """
+        urls = set()
+        logger.info(f"Searching Bing for: {query}")
+
+        self._init_browser()
+        self.rate_limiter.wait()
+
+        try:
+            context = self.browser.new_context(
+                user_agent=self.ua_rotator.get_random(),
+                viewport={"width": 1280, "height": 800}
+            )
+            page = context.new_page()
+
+            # Go to Bing
+            search_url = f"https://www.bing.com/search?q={quote_plus(query)}&count=30"
+            page.goto(search_url, timeout=30000)
+            page.wait_for_load_state("domcontentloaded")
+            time.sleep(2)  # Let results load
+
+            # Extract URLs from search results
+            html = page.content()
+            soup = BeautifulSoup(html, "html.parser")
+
+            # Debug: log page title
+            page_title = soup.title.string if soup.title else "No title"
+            logger.debug(f"Bing page title: {page_title}")
+
+            # Detect blocking
+            page_text = soup.get_text().lower()
+            if any(indicator in page_text for indicator in [
+                "unusual traffic",
+                "automated queries",
+                "verify you're human",
+                "captcha"
+            ]):
+                logger.warning("Bing blocking detected - search may return 0 results")
+
+            logger.debug(f"Bing HTML length: {len(html)} chars")
+
+            # Bing result selectors - multiple strategies
+
+            # Strategy 1: Main result links with cite elements
+            for result in soup.select("li.b_algo"):
+                # Get the main link
+                link = result.select_one("h2 a")
+                if link:
+                    href = link.get("href", "")
+                    if href and href.startswith("http"):
+                        normalized = normalize_url(href)
+                        if normalized:
+                            urls.add(normalized)
+                            logger.debug(f"Bing strategy 1 found: {normalized}")
+
+                # Also check cite elements
+                cite = result.select_one("cite")
+                if cite:
+                    text = cite.get_text().strip()
+                    if text:
+                        normalized = normalize_url(text)
+                        if normalized:
+                            urls.add(normalized)
+
+            # Strategy 2: Generic http links with data-* attributes (Bing tracking)
+            for link in soup.select("a[href^='http'][data-dt], a.b_algoLink"):
+                href = link.get("href", "")
+                if href and not any(x in href for x in ["bing.com", "microsoft.com", "msn.com"]):
+                    normalized = normalize_url(href)
+                    if normalized:
+                        urls.add(normalized)
+                        logger.debug(f"Bing strategy 2 found: {normalized}")
+
+            context.close()
+
+        except PlaywrightTimeout:
+            logger.warning(f"Timeout searching Bing for: {query}")
+        except Exception as e:
+            logger.warning(f"Error searching Bing: {e}")
+
+        # Save debug HTML if no results found
+        if len(urls) == 0:
+            try:
+                debug_dir = PROJECT_ROOT / "debug"
+                debug_dir.mkdir(exist_ok=True)
+                debug_file = debug_dir / f"bing_debug_{int(time.time())}.html"
+                with open(debug_file, "w", encoding="utf-8") as f:
+                    f.write(html if 'html' in dir() else "No HTML captured")
+                logger.info(f"Debug HTML saved to {debug_file}")
+            except Exception as e:
+                logger.debug(f"Could not save debug HTML: {e}")
+
+        logger.info(f"Bing found {len(urls)} URLs for query")
         return urls
 
     def discover_for_niche(self, niche: str, use_database: bool = False) -> Dict:
@@ -561,9 +826,35 @@ class SearchEngineScraper:
             })
         else:
             # Try search engines first
+            consecutive_failures = 0
+            max_consecutive_failures = 3  # If 3 engines fail in a row, skip to database
+
             try:
                 for template in SEARCH_QUERY_TEMPLATES[:2]:  # Limit to 2 templates to reduce blocking
                     query = template.format(niche=niche)
+
+                    # Early exit if too many consecutive failures (likely all blocked)
+                    if consecutive_failures >= max_consecutive_failures:
+                        logger.warning(f"Search engines appear blocked ({consecutive_failures} consecutive failures), skipping to database")
+                        break
+
+                    # Search Bing first (less aggressive with blocking)
+                    bing_urls = self.search_bing(query)
+                    all_urls.update(bing_urls)
+                    search_metadata.append({
+                        "engine": "bing",
+                        "query": query,
+                        "results_count": len(bing_urls),
+                    })
+                    if len(bing_urls) == 0:
+                        consecutive_failures += 1
+                    else:
+                        consecutive_failures = 0
+
+                    # Check if we have enough results
+                    if len(all_urls) >= MAX_SITES_PER_NICHE:
+                        logger.info(f"Reached max sites limit ({MAX_SITES_PER_NICHE}) for niche")
+                        break
 
                     # Search Google
                     google_urls = self.search_google(query)
@@ -573,6 +864,15 @@ class SearchEngineScraper:
                         "query": query,
                         "results_count": len(google_urls),
                     })
+                    if len(google_urls) == 0:
+                        consecutive_failures += 1
+                    else:
+                        consecutive_failures = 0
+
+                    # Check if we have enough results
+                    if len(all_urls) >= MAX_SITES_PER_NICHE:
+                        logger.info(f"Reached max sites limit ({MAX_SITES_PER_NICHE}) for niche")
+                        break
 
                     # Search DuckDuckGo
                     ddg_urls = self.search_duckduckgo(query)
@@ -582,6 +882,10 @@ class SearchEngineScraper:
                         "query": query,
                         "results_count": len(ddg_urls),
                     })
+                    if len(ddg_urls) == 0:
+                        consecutive_failures += 1
+                    else:
+                        consecutive_failures = 0
 
                     # Limit total results per niche
                     if len(all_urls) >= MAX_SITES_PER_NICHE:
