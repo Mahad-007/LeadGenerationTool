@@ -23,7 +23,7 @@ import logging
 import argparse
 import re
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional
 from urllib.parse import urlparse
 
@@ -363,7 +363,7 @@ def main():
     skipped_no_contacts = 0
 
     summary = {
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "drafts": [],
     }
 
@@ -418,7 +418,7 @@ OUTREACH DRAFT
 ================================================================================
 
 Store: {url}
-Generated: {datetime.utcnow().isoformat()}
+Generated: {datetime.now(timezone.utc).isoformat()}
 
 --------------------------------------------------------------------------------
 TO: {', '.join(email['to_emails']) if email['to_emails'] else 'No email found - check social media'}

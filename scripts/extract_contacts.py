@@ -24,7 +24,7 @@ import logging
 import argparse
 import re
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Set, Optional
 from urllib.parse import urlparse, urljoin
 
@@ -170,6 +170,39 @@ class ContactExtractor:
             if indicator in email_lower:
                 return False
 
+        # Skip technical/tracking service emails (Sentry, analytics, etc.)
+        technical_domains = [
+            'ingest.sentry.io',
+            'sentry.io',
+            'segment.io',
+            'segment.com',
+            'mixpanel.com',
+            'amplitude.com',
+            'intercom.io',
+            'zendesk.com',
+            'freshdesk.com',
+            'klaviyo.com',
+            'mailchimp.com',
+            'sendgrid.net',
+            'postmarkapp.com',
+            'sparkpost.com',
+        ]
+        for domain in technical_domains:
+            if domain in email_lower:
+                return False
+
+        # Skip emails with long hexadecimal strings (likely DSNs or tokens)
+        # Extract the local part (before @)
+        local_part = email_lower.split('@')[0] if '@' in email_lower else ''
+        if len(local_part) > 20 and re.match(r'^[a-f0-9]+$', local_part):
+            return False
+
+        # Skip emails where domain contains numbers (often auto-generated)
+        domain_part = email_lower.split('@')[1] if '@' in email_lower else ''
+        # Allow common domains with numbers like o365.com but skip tracking pixels
+        if re.match(r'o\d+\.ingest\.', domain_part):
+            return False
+
         return True
 
     def _extract_emails_from_html(self, html: str) -> Set[str]:
@@ -289,7 +322,7 @@ class ContactExtractor:
 
         result = {
             "url": base_url,
-            "extracted_at": datetime.utcnow().isoformat(),
+            "extracted_at": datetime.now(timezone.utc).isoformat(),
             "emails": [],
             "phones": [],
             "social": {},
@@ -423,7 +456,7 @@ def main():
     # Prepare output
     output = {
         "metadata": {
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "total_sites": len(results),
             "sites_with_contacts": sites_with_contacts,
             "total_emails_found": sum(len(r["emails"]) for r in results),

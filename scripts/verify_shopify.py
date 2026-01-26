@@ -24,7 +24,7 @@ import logging
 import argparse
 import re
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional, Tuple
 
 import requests
@@ -284,7 +284,7 @@ class ShopifyVerifier:
             "is_shopify": False,
             "confidence": 0,
             "signals_found": [],
-            "verified_at": datetime.utcnow().isoformat(),
+            "verified_at": datetime.now(timezone.utc).isoformat(),
             "error": None,
         }
 
@@ -438,14 +438,14 @@ def main():
                 "is_shopify": False,
                 "confidence": 0,
                 "signals_found": [],
-                "verified_at": datetime.utcnow().isoformat(),
+                "verified_at": datetime.now(timezone.utc).isoformat(),
                 "error": str(e),
             })
 
     # Prepare output
     output = {
         "metadata": {
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "total_verified": len(results),
             "shopify_count": len(shopify_sites),
             "non_shopify_count": len(results) - len(shopify_sites),

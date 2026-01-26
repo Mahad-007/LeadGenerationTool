@@ -19,7 +19,7 @@ Environment Variables:
     GEMINI_API_KEY: Your Gemini API key (required)
 
 Requirements:
-    pip install google-generativeai pillow
+    pip install google-genai pillow
 """
 
 import sys
@@ -29,10 +29,10 @@ import argparse
 import base64
 import re
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional
 
-import google.generativeai as genai
+from google import genai
 from PIL import Image
 import io
 
@@ -167,8 +167,8 @@ class GeminiAnalyzer:
         if not api_key:
             raise ValueError("GEMINI_API_KEY environment variable not set")
 
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(GEMINI_MODEL)
+        self.client = genai.Client(api_key=api_key)
+        self.model_name = GEMINI_MODEL
         logger.info(f"Initialized Gemini analyzer with model: {GEMINI_MODEL}")
 
     def _load_image(self, image_path: str) -> Optional[Image.Image]:
@@ -359,7 +359,7 @@ class GeminiAnalyzer:
 
         result = {
             "url": url,
-            "analyzed_at": datetime.utcnow().isoformat(),
+            "analyzed_at": datetime.now(timezone.utc).isoformat(),
             "issues": [],
             "summary": None,
             "error": None,
@@ -399,7 +399,10 @@ class GeminiAnalyzer:
 
             # Call Gemini API
             logger.info("  Sending to Gemini API...")
-            response = self.model.generate_content(content)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=content
+            )
 
             # Parse response
             analysis = self._parse_json_response(response.text)
@@ -496,7 +499,7 @@ def main():
                     audit["analysis"] = result
                     break
 
-        data["metadata"]["analysis_completed_at"] = datetime.utcnow().isoformat()
+        data["metadata"]["analysis_completed_at"] = datetime.now(timezone.utc).isoformat()
         data["metadata"]["total_analyzed"] = len(results)
 
         with open(AUDIT_RESULTS_FILE, "w") as f:

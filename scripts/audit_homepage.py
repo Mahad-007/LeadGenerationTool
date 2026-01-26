@@ -30,8 +30,9 @@ import logging
 import argparse
 import re
 import hashlib
+import time
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional
 from urllib.parse import urlparse
 
@@ -60,6 +61,16 @@ from config.settings import (
 # Configure logging
 logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
+
+# Retry settings for network errors
+MAX_NAVIGATION_RETRIES = 3
+NETWORK_ERRORS = [
+    "net::ERR_CONNECTION_CLOSED",
+    "net::ERR_CONNECTION_RESET",
+    "net::ERR_CONNECTION_REFUSED",
+    "net::ERR_CONNECTION_TIMED_OUT",
+    "net::ERR_NETWORK_CHANGED",
+]
 
 
 def generate_safe_filename(url: str) -> str:
@@ -341,14 +352,32 @@ class HomepageAuditor:
 
             page.on("console", handle_console)
 
-            # Navigate to page
+            # Navigate to page with retry logic for network errors
             logger.info(f"  Loading {viewport_type} view...")
-            try:
-                # Use "load" instead of "networkidle" - more reliable for slow sites
-                await page.goto(url, wait_until="load", timeout=PAGE_LOAD_TIMEOUT)
-            except PlaywrightTimeout:
-                # If load times out, try to continue anyway - page may be partially loaded
-                logger.warning(f"  Page load timeout, attempting to capture partial state...")
+            navigation_error = None
+            for attempt in range(MAX_NAVIGATION_RETRIES):
+                try:
+                    # Use "load" instead of "networkidle" - more reliable for slow sites
+                    await page.goto(url, wait_until="load", timeout=PAGE_LOAD_TIMEOUT)
+                    navigation_error = None
+                    break  # Success, exit retry loop
+                except PlaywrightTimeout:
+                    # If load times out, try to continue anyway - page may be partially loaded
+                    logger.warning(f"  Page load timeout, attempting to capture partial state...")
+                    navigation_error = None
+                    break  # Don't retry timeouts, continue with partial page
+                except Exception as nav_error:
+                    error_str = str(nav_error)
+                    is_network_error = any(net_err in error_str for net_err in NETWORK_ERRORS)
+                    if is_network_error and attempt < MAX_NAVIGATION_RETRIES - 1:
+                        logger.warning(f"  Network error (attempt {attempt + 1}/{MAX_NAVIGATION_RETRIES}): {error_str[:100]}")
+                        await asyncio.sleep(2 * (attempt + 1))  # Exponential backoff
+                        continue
+                    navigation_error = nav_error
+                    break
+
+            if navigation_error:
+                raise navigation_error
 
             # Wait for dynamic content to render
             await page.wait_for_timeout(POST_LOAD_WAIT)
@@ -404,7 +433,7 @@ class HomepageAuditor:
 
         result = {
             "url": url,
-            "audited_at": datetime.utcnow().isoformat(),
+            "audited_at": datetime.now(timezone.utc).isoformat(),
             "desktop": None,
             "mobile": None,
             "error": None,
@@ -509,7 +538,7 @@ def main():
     # Prepare output
     output = {
         "metadata": {
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "total_audited": len(results),
             "successful": successful,
             "failed": failed,
