@@ -53,6 +53,23 @@ from config.settings import (
 logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
+
+def emit_progress(current: int, total: int, message: str = "") -> None:
+    """
+    Output JSON progress line for pipeline integration.
+
+    When running from the pipeline (non-TTY stdin), outputs progress
+    as JSON to stdout for the executor to parse and broadcast.
+    """
+    if not sys.stdin.isatty():
+        progress_data = {
+            "type": "progress",
+            "current": current,
+            "total": total,
+            "message": message or f"Processing {current}/{total}",
+        }
+        print(json.dumps(progress_data), flush=True)
+
 # Analysis prompt for Gemini - VISUAL/DESIGN ISSUES ONLY
 ANALYSIS_PROMPT = """You are a professional UI/UX designer analyzing screenshots of a Shopify store homepage.
 
@@ -476,8 +493,14 @@ def main():
 
     # Analyze each audit
     results = []
+    total_audits = len(audits)
     for i, audit in enumerate(audits, 1):
-        logger.info(f"[{i}/{len(audits)}] Processing {audit.get('url', 'Unknown')}")
+        url = audit.get('url', 'Unknown')
+
+        # Emit progress for pipeline
+        emit_progress(i, total_audits, f"Analyzing {url}")
+
+        logger.info(f"[{i}/{total_audits}] Processing {url}")
 
         # Skip failed audits
         if audit.get("error"):

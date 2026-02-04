@@ -53,6 +53,23 @@ logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
 
+def emit_progress(current: int, total: int, message: str = "") -> None:
+    """
+    Output JSON progress line for pipeline integration.
+
+    When running from the pipeline (non-TTY stdin), outputs progress
+    as JSON to stdout for the executor to parse and broadcast.
+    """
+    if not sys.stdin.isatty():
+        progress_data = {
+            "type": "progress",
+            "current": current,
+            "total": total,
+            "message": message or f"Processing {current}/{total}",
+        }
+        print(json.dumps(progress_data), flush=True)
+
+
 class UserAgentRotator:
     """Manages rotation of user agents for requests."""
 
@@ -422,8 +439,12 @@ def main():
     results = []
     shopify_sites = []
 
+    total_urls = len(urls)
     for i, url in enumerate(urls, 1):
-        logger.info(f"[{i}/{len(urls)}] Processing {url}")
+        # Emit progress for pipeline
+        emit_progress(i, total_urls, f"Verifying {url}")
+
+        logger.info(f"[{i}/{total_urls}] Processing {url}")
         try:
             result = verifier.verify(url)
             results.append(result)

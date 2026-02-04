@@ -5,21 +5,61 @@ A zero-cost, script-based system for discovering Shopify stores, auditing their 
 ## Overview
 
 This MVP system:
-1. Discovers Shopify stores via search engine scraping
+1. Discovers Shopify stores via search engine scraping or built-in database
 2. Verifies stores are actually built on Shopify
-3. Audits homepage UI using Playwright
-4. Analyzes screenshots with Gemini AI for high-confidence issues
+3. Audits homepage UI using Playwright (desktop + mobile screenshots)
+4. Analyzes screenshots with Gemini AI for visual/design issues
 5. Extracts public contact information
 6. Generates copy-paste-ready outreach emails
 
 **Important**: This system is designed for manual outreach only. No automated email sending is included.
+
+## Quick Start
+
+The easiest way to run the tool is using the unified CLI (`run.py`):
+
+### Interactive Mode (Recommended)
+
+```bash
+python run.py
+```
+
+This launches an interactive wizard that guides you through the entire pipeline.
+
+### Batch Mode
+
+```bash
+python run.py run --niches "sustainable fashion, jewelry" --max-sites 10 --sender-name "Your Name"
+```
+
+### Manual URL Input (Skip Discovery)
+
+```bash
+# Comma-separated URLs
+python run.py add-urls --urls "https://store1.com,https://store2.com"
+
+# From a file (one URL per line)
+python run.py add-urls --file urls.txt
+```
+
+### Check Pipeline Status
+
+```bash
+python run.py status
+```
+
+### Clean All Output Data
+
+```bash
+python run.py clean
+```
 
 ## Requirements
 
 ### Python Dependencies
 
 ```bash
-pip install requests beautifulsoup4 playwright google-generativeai pillow
+pip install requests beautifulsoup4 playwright google-generativeai pillow typer questionary rich python-dotenv
 ```
 
 ### Playwright Setup
@@ -37,39 +77,160 @@ playwright install chromium
 export GEMINI_API_KEY="your-api-key-here"
 ```
 
+Or create a `.env` file in the project root:
+
+```
+GEMINI_API_KEY=your-api-key-here
+```
+
 ## Project Structure
 
 ```
 project-root/
+├── run.py                       # Main CLI entry point (unified interface)
 ├── config/
-│   ├── settings.py          # All configuration settings
-│   └── user_agents.txt      # User agents for rotation
+│   ├── settings.py              # All configuration settings
+│   └── user_agents.txt          # User agents for rotation
 ├── input/
-│   └── niches.txt           # Niche keywords to search
-├── discovery/
-│   └── discovered_sites.json    # Discovered site URLs
-├── verification/
-│   └── shopify_sites.json       # Verified Shopify stores
-├── audits/
-│   ├── screenshots/             # Homepage screenshots
-│   └── audit_results.json       # Audit data + AI analysis
-├── contacts/
-│   └── contacts.json            # Extracted contact info
-├── outreach/
-│   └── drafts/                  # Generated email drafts
+│   └── niches.txt               # Niche keywords to search
 ├── scripts/
-│   ├── discover_sites.py
-│   ├── verify_shopify.py
-│   ├── audit_homepage.py
-│   ├── analyze_with_gemini.py
-│   ├── extract_contacts.py
-│   └── generate_outreach.py
+│   ├── discover_sites.py        # Site discovery (search + database)
+│   ├── verify_shopify.py        # Shopify verification
+│   ├── audit_homepage.py        # Playwright-based auditing
+│   ├── analyze_with_gemini.py   # AI visual analysis
+│   ├── extract_contacts.py      # Contact extraction
+│   └── generate_outreach.py     # Email draft generation
+├── discovery/
+│   └── discovered_sites.json    # Discovered site URLs (output)
+├── verification/
+│   └── shopify_sites.json       # Verified Shopify stores (output)
+├── audits/
+│   ├── screenshots/             # Homepage screenshots (output)
+│   └── audit_results.json       # Audit data + AI analysis (output)
+├── contacts/
+│   └── contacts.json            # Extracted contact info (output)
+├── outreach/
+│   └── drafts/                  # Generated email drafts (output)
+├── debug/                       # Debug HTML files when search fails
+├── .env                         # Environment variables (create this)
 └── README.md
 ```
 
-## Execution Order
+## Built-in Shopify Store Database
 
-Run scripts in this exact order:
+When search engines block requests or return zero results, the system automatically falls back to a built-in database of 100+ verified Shopify stores across these niches:
+
+- **shoes** - Kizik, Allbirds, Rothy's, GOAT, Steve Madden, etc.
+- **fashion** - Fashion Nova, Gymshark, Princess Polly, etc.
+- **jewelry** - Mejuri, Kendra Scott, Gorjana, etc.
+- **beauty** - ColourPop, Kylie Cosmetics, Morphe, etc.
+- **skincare** - The Ordinary, Glossier, CeraVe, etc.
+- **men skincare / grooming** - Dollar Shave Club, Manscaped, etc.
+- **fitness** - Gymshark, Alo Yoga, Fabletics, etc.
+- **home** - Brooklinen, Parachute, Article, etc.
+- **food** - Magic Spoon, Liquid Death, etc.
+- **pets** - BarkBox, Chewy, etc.
+
+To use the database directly (bypasses search engines):
+
+```bash
+python scripts/discover_sites.py --use-database
+```
+
+## CLI Reference
+
+### run.py Commands
+
+| Command | Description |
+|---------|-------------|
+| `python run.py` | Interactive mode with guided prompts |
+| `python run.py run` | Batch mode with CLI flags |
+| `python run.py status` | Show pipeline status and data counts |
+| `python run.py add-urls` | Add URLs manually (skip discovery) |
+| `python run.py clean` | Clean all output files |
+
+### run.py run Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--niches` | Comma-separated niche keywords | Reads from input/niches.txt |
+| `--max-sites` | Maximum sites per niche | 5 |
+| `--confidence` | Minimum Shopify confidence score | 70 |
+| `--sender-name` | Your name for email drafts | "Your Name" |
+| `--sender-title` | Your title for email drafts | "UI/UX Consultant" |
+
+### Individual Script Options
+
+#### discover_sites.py
+
+```bash
+python scripts/discover_sites.py [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--niche "keyword"` | Search single niche instead of file |
+| `--append` | Add to existing results instead of overwriting |
+| `--use-database` | Use built-in store database (skip search engines) |
+
+#### verify_shopify.py
+
+```bash
+python scripts/verify_shopify.py [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--min-confidence 70` | Minimum confidence score (default: 70) |
+| `--url "https://example.com"` | Verify single URL |
+
+#### audit_homepage.py
+
+```bash
+python scripts/audit_homepage.py [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--url "https://example.com"` | Audit single URL |
+
+#### analyze_with_gemini.py
+
+```bash
+python scripts/analyze_with_gemini.py [options]
+```
+
+**Requires**: `GEMINI_API_KEY` environment variable
+
+| Option | Description |
+|--------|-------------|
+| `--url "https://example.com"` | Analyze single URL |
+
+#### extract_contacts.py
+
+```bash
+python scripts/extract_contacts.py [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--url "https://example.com"` | Extract from single URL |
+
+#### generate_outreach.py
+
+```bash
+python scripts/generate_outreach.py [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--url "https://example.com"` | Generate for single URL |
+| `--sender-name "Your Name"` | Custom sender name |
+| `--sender-title "Your Title"` | Custom sender title |
+
+## Execution Order (Manual Mode)
+
+If running scripts individually instead of using `run.py`:
 
 ### Step 1: Configure Niches
 
@@ -87,10 +248,6 @@ handmade jewelry
 python scripts/discover_sites.py
 ```
 
-Options:
-- `--niche "keyword"` - Search single niche instead of file
-- `--append` - Add to existing results instead of overwriting
-
 Output: `discovery/discovered_sites.json`
 
 ### Step 3: Verify Shopify Stores
@@ -98,10 +255,6 @@ Output: `discovery/discovered_sites.json`
 ```bash
 python scripts/verify_shopify.py
 ```
-
-Options:
-- `--min-confidence 60` - Minimum confidence score (default: 60)
-- `--url "https://example.com"` - Verify single URL
 
 Output: `verification/shopify_sites.json`
 
@@ -111,12 +264,7 @@ Output: `verification/shopify_sites.json`
 python scripts/audit_homepage.py
 ```
 
-Options:
-- `--url "https://example.com"` - Audit single URL
-
-Output:
-- `audits/audit_results.json`
-- `audits/screenshots/` (PNG files)
+Output: `audits/audit_results.json` + `audits/screenshots/`
 
 ### Step 5: Analyze with Gemini
 
@@ -124,21 +272,13 @@ Output:
 python scripts/analyze_with_gemini.py
 ```
 
-**Requires**: `GEMINI_API_KEY` environment variable
-
-Options:
-- `--url "https://example.com"` - Analyze single URL
-
-Output: Updates `audits/audit_results.json` with analysis
+Output: Updates `audits/audit_results.json` with visual analysis
 
 ### Step 6: Extract Contacts
 
 ```bash
 python scripts/extract_contacts.py
 ```
-
-Options:
-- `--url "https://example.com"` - Extract from single URL
 
 Output: `contacts/contacts.json`
 
@@ -148,25 +288,21 @@ Output: `contacts/contacts.json`
 python scripts/generate_outreach.py
 ```
 
-Options:
-- `--url "https://example.com"` - Generate for single URL
-- `--sender-name "Your Name"` - Custom sender name
-- `--sender-title "Your Title"` - Custom sender title
-
 Output: `outreach/drafts/` (individual .txt files + summary JSON)
 
 ## Safety Limits
 
 The system includes built-in safety measures:
 
-| Setting | Value | Purpose |
-|---------|-------|---------|
+| Setting | Default Value | Purpose |
+|---------|---------------|---------|
 | MIN_REQUEST_DELAY | 10 seconds | Minimum delay between requests |
 | MAX_REQUEST_DELAY | 15 seconds | Maximum delay between requests |
 | MAX_RESULTS_PER_ENGINE | 30 | Max results per search engine |
-| MAX_SITES_PER_NICHE | 50 | Max sites discovered per niche |
+| MAX_SITES_PER_NICHE | 5 | Max sites discovered per niche |
 | REQUEST_TIMEOUT | 30 seconds | HTTP request timeout |
 | MAX_RETRIES | 3 | Retry attempts for failed requests |
+| MIN_SHOPIFY_CONFIDENCE | 70 | Minimum Shopify verification score |
 
 These can be adjusted in `config/settings.py`.
 
@@ -176,27 +312,57 @@ Settings in `config/settings.py`:
 
 ```python
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL = "gemini-1.5-flash"  # Free tier model
+GEMINI_MODEL = "gemini-2.5-flash"  # Free tier model
 MAX_ISSUES_PER_SITE = 3  # Maximum issues reported per site
 ```
 
-The system uses Gemini 1.5 Flash for cost efficiency. For higher quality analysis, change to `gemini-1.5-pro`.
+The system uses Gemini 2.5 Flash for cost efficiency. For higher quality analysis, change to `gemini-2.5-pro`.
 
 ## UI Issue Detection
 
-The system detects only high-confidence, evidence-based issues:
+The system uses **visual/design analysis** via Gemini AI to detect issues from screenshots. It focuses on:
 
-| Issue Type | Detection Method |
-|------------|------------------|
-| CTA below fold | DOM analysis + screenshot position |
-| Missing primary CTA | DOM analysis |
-| Slow LCP (>2.5s) | Performance API metrics |
-| Console errors | Browser console capture |
-| Broken images | DOM naturalWidth check |
-| Mobile layout issues | Screenshot analysis |
-| Text/element overlap | Gemini vision analysis |
+| Issue Category | What's Detected |
+|----------------|-----------------|
+| Typography | Font issues, readability problems, inconsistent text styling |
+| Layout & Spacing | Alignment issues, inconsistent spacing, cramped or sparse layouts |
+| Images | Broken images, poor quality, sizing issues |
+| Mobile Responsiveness | Layout breaks, touch target issues, content overflow |
+| Color & Contrast | Poor contrast, accessibility issues, inconsistent colors |
+| Visual Hierarchy | Unclear focus, competing elements, missing emphasis |
 
-**No subjective opinions** - only issues with concrete evidence are reported.
+**Note**: The analysis focuses on visual issues only. Performance metrics (LCP, FCP) are collected for reference but issues are detected through screenshot analysis.
+
+## Email Templates
+
+The system includes category-specific email templates:
+
+| Category | Focus |
+|----------|-------|
+| `typography` | Font and text styling issues |
+| `layout` | Spacing and alignment problems |
+| `images` | Visual/image quality issues |
+| `mobile` | Mobile responsiveness problems |
+| `contrast` | Color and contrast issues |
+| `hierarchy` | Visual hierarchy and focus issues |
+| `generic` | General design improvements |
+
+Each email is personalized with:
+- Store name and URL
+- Specific issue evidence from AI analysis
+- Actionable recommendations
+- Your sender name and title
+
+## Search Engines
+
+The system uses multiple search engines in this order:
+
+1. **Bing** - First choice (less aggressive blocking)
+2. **Google** - Second choice
+3. **DuckDuckGo** - Third choice
+4. **Built-in Database** - Automatic fallback when all engines fail
+
+When search engines block requests, debug HTML is saved to `debug/` for troubleshooting.
 
 ## Output Examples
 
@@ -217,6 +383,9 @@ The system detects only high-confidence, evidence-based issues:
       "urls": [
         "https://example-store.com",
         "https://another-store.com"
+      ],
+      "search_metadata": [
+        {"engine": "bing", "query": "sustainable fashion site:myshopify.com", "results_count": 10}
       ]
     }
   ]
@@ -231,7 +400,7 @@ The system detects only high-confidence, evidence-based issues:
     "generated_at": "2024-01-15T11:00:00.000000",
     "total_verified": 25,
     "shopify_count": 18,
-    "min_confidence_threshold": 60
+    "min_confidence_threshold": 70
   },
   "shopify_sites": [
     {
@@ -266,27 +435,24 @@ The system detects only high-confidence, evidence-based issues:
         "console_errors": []
       },
       "mobile": {
-        "screenshot_path": "/path/to/screenshot_mobile.png",
-        "performance_metrics": {
-          "lcp": 4100
-        }
+        "screenshot_path": "/path/to/screenshot_mobile.png"
       },
       "analysis": {
         "issues": [
           {
             "id": "issue_1",
-            "category": "performance",
+            "category": "typography",
             "severity": "high",
-            "title": "Slow page load on mobile",
-            "description": "LCP of 4100ms exceeds recommended 2500ms threshold",
-            "evidence": "Mobile LCP: 4100ms",
-            "recommendation": "Optimize images and reduce JavaScript bundle size"
+            "title": "Inconsistent font sizing",
+            "description": "Body text varies between 14px and 16px across sections",
+            "evidence": "Visible in hero section vs product grid",
+            "recommendation": "Standardize body text to 16px for consistency"
           }
         ],
         "summary": {
           "total_issues": 1,
           "high_severity": 1,
-          "primary_concern": "Page performance on mobile"
+          "primary_concern": "Typography consistency"
         }
       }
     }
@@ -332,7 +498,7 @@ Generated: 2024-01-15T15:00:00.000000
 TO: hello@example-store.com
 --------------------------------------------------------------------------------
 
-SUBJECT: Page speed opportunity for Example Store
+SUBJECT: Design improvement opportunity for Example Store
 
 --------------------------------------------------------------------------------
 BODY:
@@ -340,16 +506,13 @@ BODY:
 
 Hi there,
 
-I took a look at Example Store and ran some performance tests. I noticed your
-homepage is loading slower than ideal - Mobile LCP of 4100ms exceeds the
-recommended 2500ms threshold.
+I was looking at Example Store and noticed an opportunity to improve the design.
 
-Slow load times can significantly impact both conversions and search rankings.
-Studies show that each second of delay can reduce conversions by 7%.
+I spotted some inconsistent font sizing - body text varies between 14px and 16px
+across sections. Small design improvements like this can often have a meaningful
+impact on conversions.
 
-There are usually some quick optimizations that can make a noticeable difference.
-
-Would you be interested in a brief overview of what could be improved?
+Would you be open to a quick conversation about it?
 
 Best regards,
 Your Name
@@ -380,12 +543,12 @@ python scripts/generate_outreach.py --sender-name "John Doe" --sender-title "Web
 In `config/settings.py`:
 
 ```python
-# Performance thresholds
+# Performance thresholds (for reference)
 LCP_THRESHOLD_MS = 2500  # Largest Contentful Paint
 CLS_THRESHOLD = 0.1      # Cumulative Layout Shift
 
 # Shopify verification
-MIN_SHOPIFY_CONFIDENCE = 60  # Minimum confidence score
+MIN_SHOPIFY_CONFIDENCE = 70  # Minimum confidence score
 
 # Analysis
 MAX_ISSUES_PER_SITE = 3  # Maximum issues to report
@@ -412,38 +575,40 @@ SEARCH_QUERY_TEMPLATES = [
 export GEMINI_API_KEY="your-api-key-here"
 ```
 
+Or create a `.env` file with `GEMINI_API_KEY=your-key`.
+
 ### Playwright browser not found
 
 ```bash
 playwright install chromium
 ```
 
-### Rate limiting errors
+### Rate limiting / No sites discovered
 
-The system has built-in delays. If you still get blocked:
-1. Increase `MIN_REQUEST_DELAY` in settings
-2. Wait before retrying
-3. Use a VPN to change IP
+The system has built-in fallback to the store database. If you still get no results:
+1. Use `--use-database` flag to skip search engines entirely
+2. Increase `MIN_REQUEST_DELAY` in settings
+3. Wait 30 minutes before retrying
+4. Use a VPN to change IP
 
-### No sites discovered
+### Debug search issues
 
-1. Check your niche keywords are reasonable
-2. Try broader search terms
-3. Verify internet connection
+Check the `debug/` folder for saved HTML files from search engines. These show what the search engine returned, useful for diagnosing blocking issues.
 
 ### Empty audit results
 
-1. Ensure Playwright is installed correctly
+1. Ensure Playwright is installed correctly: `playwright install chromium`
 2. Check that discovered sites are accessible
 3. Review console output for errors
 
 ## Best Practices
 
 1. **Start small**: Test with 1-2 niches first
-2. **Review drafts**: Always review and personalize emails before sending
-3. **Respect rate limits**: Don't increase scraping speed
-4. **Keep records**: Track which stores you've contacted
-5. **Be professional**: Only send to business contacts
+2. **Use the database**: For testing, use `--use-database` to avoid rate limits
+3. **Review drafts**: Always review and personalize emails before sending
+4. **Respect rate limits**: Don't increase scraping speed
+5. **Keep records**: Track which stores you've contacted
+6. **Be professional**: Only send to business contacts
 
 ## License
 

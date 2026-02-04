@@ -53,6 +53,23 @@ from config.settings import (
 logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
+
+def emit_progress(current: int, total: int, message: str = "") -> None:
+    """
+    Output JSON progress line for pipeline integration.
+
+    When running from the pipeline (non-TTY stdin), outputs progress
+    as JSON to stdout for the executor to parse and broadcast.
+    """
+    if not sys.stdin.isatty():
+        progress_data = {
+            "type": "progress",
+            "current": current,
+            "total": total,
+            "message": message or f"Processing {current}/{total}",
+        }
+        print(json.dumps(progress_data), flush=True)
+
 # Email regex pattern
 EMAIL_PATTERN = re.compile(
     r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
@@ -444,9 +461,13 @@ def main():
     # Extract contacts for each URL
     results = []
     sites_with_contacts = 0
+    total_urls = len(urls)
 
     for i, url in enumerate(urls, 1):
-        logger.info(f"[{i}/{len(urls)}] Processing {url}")
+        # Emit progress for pipeline
+        emit_progress(i, total_urls, f"Extracting contacts from {url}")
+
+        logger.info(f"[{i}/{total_urls}] Processing {url}")
         result = extractor.extract(url)
         results.append(result)
 

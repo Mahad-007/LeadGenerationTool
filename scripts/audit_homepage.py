@@ -62,6 +62,23 @@ from config.settings import (
 logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
+
+def emit_progress(current: int, total: int, message: str = "") -> None:
+    """
+    Output JSON progress line for pipeline integration.
+
+    When running from the pipeline (non-TTY stdin), outputs progress
+    as JSON to stdout for the executor to parse and broadcast.
+    """
+    if not sys.stdin.isatty():
+        progress_data = {
+            "type": "progress",
+            "current": current,
+            "total": total,
+            "message": message or f"Processing {current}/{total}",
+        }
+        print(json.dumps(progress_data), flush=True)
+
 # Retry settings for network errors
 MAX_NAVIGATION_RETRIES = 3
 NETWORK_ERRORS = [
@@ -492,12 +509,16 @@ async def main_async(urls: List[str]):
     """Async main function to run audits."""
     auditor = HomepageAuditor(SCREENSHOTS_DIR)
     results = []
+    total_urls = len(urls)
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
 
         for i, url in enumerate(urls, 1):
-            logger.info(f"[{i}/{len(urls)}] Processing {url}")
+            # Emit progress for pipeline
+            emit_progress(i, total_urls, f"Auditing {url}")
+
+            logger.info(f"[{i}/{total_urls}] Processing {url}")
             result = await auditor.audit_homepage(browser, url)
             results.append(result)
 

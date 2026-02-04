@@ -47,6 +47,23 @@ logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
 
+def emit_progress(current: int, total: int, message: str = "") -> None:
+    """
+    Output JSON progress line for pipeline integration.
+
+    When running from the pipeline (non-TTY stdin), outputs progress
+    as JSON to stdout for the executor to parse and broadcast.
+    """
+    if not sys.stdin.isatty():
+        progress_data = {
+            "type": "progress",
+            "current": current,
+            "total": total,
+            "message": message or f"Processing {current}/{total}",
+        }
+        print(json.dumps(progress_data), flush=True)
+
+
 # Email templates based on issue categories (design-focused)
 EMAIL_TEMPLATES = {
     "typography": {
@@ -367,11 +384,17 @@ def main():
         "drafts": [],
     }
 
-    for audit in audit_data.get("audits", []):
+    audits = audit_data.get("audits", [])
+    total_audits = len(audits)
+
+    for i, audit in enumerate(audits, 1):
         url = audit.get("url")
 
         if not url:
             continue
+
+        # Emit progress for pipeline
+        emit_progress(i, total_audits, f"Generating email for {url}")
 
         # Filter by URL if specified
         if args.url and url != args.url:

@@ -181,6 +181,23 @@ logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
 
+def emit_progress(current: int, total: int, message: str = "") -> None:
+    """
+    Output JSON progress line for pipeline integration.
+
+    When running from the pipeline (non-TTY stdin), outputs progress
+    as JSON to stdout for the executor to parse and broadcast.
+    """
+    if not sys.stdin.isatty():
+        progress_data = {
+            "type": "progress",
+            "current": current,
+            "total": total,
+            "message": message or f"Processing {current}/{total}",
+        }
+        print(json.dumps(progress_data), flush=True)
+
+
 class UserAgentRotator:
     """Manages rotation of user agents for requests."""
 
@@ -979,7 +996,11 @@ def main():
     discoveries = existing_data.get("discoveries", [])
     existing_niches = {d["niche"] for d in discoveries}
 
-    for niche in niches:
+    total_niches = len(niches)
+    for idx, niche in enumerate(niches, 1):
+        # Emit progress for pipeline
+        emit_progress(idx, total_niches, f"Discovering sites for '{niche}'")
+
         if niche in existing_niches and args.append:
             logger.info(f"Skipping already discovered niche: {niche}")
             continue
