@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import type { PipelineStep, PipelineStatus, StepStatus } from '@/types'
 import { Header } from './Header'
-import { Sidebar } from './Sidebar'
 
 export interface AppShellProps {
   children: ReactNode
@@ -10,40 +9,38 @@ export interface AppShellProps {
   stepStatuses: Record<PipelineStep, StepStatus>
   onRunPipeline: () => void
   onStopPipeline: () => void
-  onNavigate: (step: PipelineStep) => void
-  activeView?: PipelineStep
+  onNavigate: (step: PipelineStep | 'dashboard') => void
+  activeView?: PipelineStep | 'dashboard'
 }
 
 export function AppShell({
   children,
   pipelineStatus,
-  currentStep,
-  stepStatuses,
   onRunPipeline,
   onStopPipeline,
   onNavigate,
   activeView,
 }: AppShellProps) {
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100">
+    <div className="min-h-screen flex flex-col bg-white">
       <Header
         pipelineStatus={pipelineStatus}
         onRunPipeline={onRunPipeline}
         onStopPipeline={onStopPipeline}
+        onNavigate={onNavigate}
+        activeView={activeView}
       />
 
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar
-          currentStep={currentStep}
-          stepStatuses={stepStatuses}
-          onNavigate={onNavigate}
-          activeView={activeView}
-        />
+      <main className="flex-1">
+        {children}
+      </main>
 
-        <main className="flex-1 overflow-auto p-6">
-          {children}
-        </main>
-      </div>
+      {/* Minimal Footer */}
+      <footer className="text-center py-12 border-t border-gray-200 mt-20">
+        <p className="text-sm text-gray-400">
+          ShopifyAudit — Lead generation for UI consultants
+        </p>
+      </footer>
     </div>
   )
 }

@@ -88,7 +88,7 @@ describe('pipelineApi', () => {
         json: () => Promise.resolve(mockResponse),
       })
 
-      const result = await pipelineApi.run()
+      const result = await pipelineApi.run({ niche: 'shoes' })
 
       expect(result.data).toEqual(mockResponse)
       expect(mockFetch).toHaveBeenCalledWith(
